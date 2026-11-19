@@ -1,0 +1,619 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vicki Castle - Video Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      margin: 0;
+      padding: 24px;
+      color: #0f172a;
+    }
+    .page-wrap {
+      display: flex;
+      justify-content: center;
+    }
+    .viewer-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 24px 24px 32px;
+      width: 100%;
+      max-width: 980px;
+      box-shadow:
+        0 18px 45px rgba(15, 23, 42, 0.35),
+        0 0 0 1px rgba(148, 163, 184, 0.18);
+    }
+    .client-header {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #0f172a;
+    }
+    .client-subtitle {
+      margin-top: 4px;
+      margin-bottom: 20px;
+      color: #64748b;
+      font-size: 14px;
+    }
+    .table-wrap {
+      margin-top: 8px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #ffffff;
+    }
+    thead {
+      background: #f1f5f9;
+    }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    td {
+      padding: 10px 14px;
+      vertical-align: middle;
+      border-bottom: 1px solid #e2e8f0;
+      background: #ffffff;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .thumb-cell {
+      width: 170px;
+    }
+    .thumb-wrapper {
+      display: inline-block;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
+      transform: translateZ(0);
+    }
+    .thumb-img {
+      display: block;
+      width: 160px;
+      height: auto;
+      cursor: pointer;
+      transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+    }
+    .thumb-img:hover {
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 16px 35px rgba(15, 23, 42, 0.45);
+    }
+    .info-cell {
+      width: auto;
+    }
+    .play-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #0f172a;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .play-link:hover .filename-text {
+      color: #0ea5e9;
+    }
+    .play-icon {
+      width: 24px;
+      height: 24px;
+      fill: #0ea5e9;
+      filter: drop-shadow(0 4px 8px rgba(14, 165, 233, 0.55));
+    }
+    .filename-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 360px;
+    }
+    .meta-line {
+      margin-top: 4px;
+      font-size: 13px;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot-sep {
+      opacity: 0.7;
+    }
+    .share-cell {
+      width: 140px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .icon-button {
+      background: #0f172a;
+      border-radius: 999px;
+      border: none;
+      padding: 7px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.45);
+      transition: transform 0.16s ease-out, box-shadow 0.16s ease-out, background 0.16s ease-out;
+    }
+    .icon-button:hover {
+      transform: translateY(-1px);
+      background: #020617;
+      box-shadow: 0 16px 35px rgba(15, 23, 42, 0.6);
+    }
+    .share-icon,
+    .download-icon {
+      width: 18px;
+      height: 18px;
+      fill: #e5e7eb;
+    }
+    .download-button {
+      margin-left: 6px;
+    }
+    .site-footer {
+      margin-top: 18px;
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: right;
+    }
+
+    /* Overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.88);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+    .overlay.visible {
+      display: flex;
+    }
+    .overlay-inner {
+      position: relative;
+      max-width: 90%;
+      max-height: 90%;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.9);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #020617;
+      z-index: 1;
+    }
+    .overlay-close {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 30px;
+      color: #e5e7eb;
+      background: rgba(15, 23, 42, 0.7);
+      border-radius: 999px;
+      border: none;
+      width: 34px;
+      height: 34px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    /* Back to top */
+    #backToTop {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0ea5e9;
+      color: white;
+      border: none;
+      padding: 11px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: none;
+      box-shadow: 0 14px 30px rgba(14, 165, 233, 0.7);
+    }
+    #backToTop.visible {
+      display: inline-flex;
+    }
+    #backToTop svg {
+      width: 20px;
+      height: 20px;
+      fill: #e5e7eb;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 9px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.7);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+    }
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+   /* -----------------------------------------
+   MOBILE LAYOUT (portrait phones)
+   ----------------------------------------- */
+@media (max-width: 650px) {
+
+  /* Turn each row into a stacked card */
+  tbody tr {
+    display: flex;
+    flex-direction: column;
+    padding: 14px 12px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  tbody tr td {
+    display: block;
+    width: 100%;
+    padding: 8px 0;
+    border-bottom: none;
+  }
+
+  /* Thumbnail stays at the top */
+  .thumb-cell {
+    width: 100% !important;
+  }
+  .thumb-wrapper {
+    width: 100%;
+    max-width: 260px;
+  }
+  .thumb-img {
+    width: 100%;
+    max-width: 260px;
+  }
+
+  /* Video info section */
+  .info-cell {
+    width: 100% !important;
+    margin-top: 6px;
+  }
+
+  .filename-text {
+    max-width: 100% !important;
+    white-space: normal;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  .meta-line {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  /* Share/download buttons move under the info */
+  .share-cell {
+    width: 100% !important;
+    text-align: left !important;
+    margin-top: 10px;
+    display: flex;
+    gap: 12px;
+  }
+
+  .icon-button {
+    padding: 8px 12px;
+  }
+
+  /* Hide table headers on mobile */
+  thead {
+    display: none;
+  }
+
+  /* Remove table look */
+  table {
+    border-collapse: separate;
+  }
+}
+
+
+  </style>
+</head>
+
+<body>
+  <div class="page-wrap">
+    <div class="viewer-card">
+      <h1 class="client-header">Vicki Castle</h1>
+      <div class="client-subtitle">Video Library</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Preview</th>
+              <th>Video</th>
+              <th style="text-align:right;">Share</th>
+            </tr>
+          </thead>
+          <tbody>
+<tr>
+  <td class="thumb-cell">
+    <div class="thumb-wrapper">
+      <img src="thumbnails/Baby Ultrasound.jpg"
+           class="thumb-img"
+           data-thumb="thumbnails/Baby Ultrasound.jpg"
+           onclick="openImageFromThumb(this)">
+    </div>
+  </td>
+
+  <td class="info-cell">
+    <a href="#"
+       class="play-link"
+       data-local="./Baby Ultrasound.mp4"
+       data-dropbox="https://dl.dropboxusercontent.com/s/ggfks6uvkh0zu0m7le5gn/Baby-Ultrasound.mp4?rlkey=za9omqwv62hii0n2ztxbu1ut8"
+       onclick="openVideoFromLink(this); return false;">
+      <svg class="play-icon" viewBox="0 0 24 24">
+        <polygon points="5,3 19,12 5,21" />
+      </svg>
+      <span class="filename-text">Baby Ultrasound.mp4</span>
+    </a>
+
+    <div class="meta-line">
+      <span class="size-text">122.81 MB</span>
+      <span class="dot-sep">•</span>
+      <span class="duration-text">00:06:06</span>
+    </div>
+  </td>
+
+  <td class="share-cell">
+
+    <!-- Share button -->
+    <button class="icon-button"
+            data-dropbox="https://www.dropbox.com/s/ggfks6uvkh0zu0m7le5gn/Baby-Ultrasound.mp4?rlkey=za9omqwv62hii0n2ztxbu1ut8&dl=0"
+            onclick="copyShareLinkFromButton(this)"
+            title="Copy Dropbox share link">
+      <svg class="share-icon" viewBox="0 0 24 24">
+        <path d="M14 3l7 4-7 4-7-4 7-4zm7 6v6l-7 4v-6l7-4zm-9 4v6l-7-4V9l7 4z"/>
+      </svg>
+    </button>
+
+    <!-- Download button -->
+    <a class="icon-button download-button"
+       data-dropbox-download="https://dl.dropboxusercontent.com/s/ggfks6uvkh0zu0m7le5gn/Baby-Ultrasound.mp4?rlkey=za9omqwv62hii0n2ztxbu1ut8&dl=1"
+       onclick="downloadFromDropbox(this); return false;"
+       title="Download video">
+      <svg class="download-icon" viewBox="0 0 24 24">
+        <path d="M12 3v12l4-4h-3V3h-2v8H8l4 4zm-7 9v6h14v-6h2v8H3v-8h2z"/>
+      </svg>
+    </a>
+
+  </td>
+</tr>
+<tr>
+  <td class="thumb-cell">
+    <div class="thumb-wrapper">
+      <img src="thumbnails/Benjamin 1.jpg"
+           class="thumb-img"
+           data-thumb="thumbnails/Benjamin 1.jpg"
+           onclick="openImageFromThumb(this)">
+    </div>
+  </td>
+
+  <td class="info-cell">
+    <a href="#"
+       class="play-link"
+       data-local="./Benjamin 1.mp4"
+       data-dropbox="https://dl.dropboxusercontent.com/s/trqanryo1hxaw40hyxeju/Benjamin-1.mp4?rlkey=4q6dbanbb5jotr18dmglieiqz"
+       onclick="openVideoFromLink(this); return false;">
+      <svg class="play-icon" viewBox="0 0 24 24">
+        <polygon points="5,3 19,12 5,21" />
+      </svg>
+      <span class="filename-text">Benjamin 1.mp4</span>
+    </a>
+
+    <div class="meta-line">
+      <span class="size-text">6,114.78 MB</span>
+      <span class="dot-sep">•</span>
+      <span class="duration-text">02:07:33</span>
+    </div>
+  </td>
+
+  <td class="share-cell">
+
+    <!-- Share button -->
+    <button class="icon-button"
+            data-dropbox="https://www.dropbox.com/s/trqanryo1hxaw40hyxeju/Benjamin-1.mp4?rlkey=4q6dbanbb5jotr18dmglieiqz&dl=0"
+            onclick="copyShareLinkFromButton(this)"
+            title="Copy Dropbox share link">
+      <svg class="share-icon" viewBox="0 0 24 24">
+        <path d="M14 3l7 4-7 4-7-4 7-4zm7 6v6l-7 4v-6l7-4zm-9 4v6l-7-4V9l7 4z"/>
+      </svg>
+    </button>
+
+    <!-- Download button -->
+    <a class="icon-button download-button"
+       data-dropbox-download="https://dl.dropboxusercontent.com/s/trqanryo1hxaw40hyxeju/Benjamin-1.mp4?rlkey=4q6dbanbb5jotr18dmglieiqz&dl=1"
+       onclick="downloadFromDropbox(this); return false;"
+       title="Download video">
+      <svg class="download-icon" viewBox="0 0 24 24">
+        <path d="M12 3v12l4-4h-3V3h-2v8H8l4 4zm-7 9v6h14v-6h2v8H3v-8h2z"/>
+      </svg>
+    </a>
+
+  </td>
+</tr>
+<tr>
+  <td class="thumb-cell">
+    <div class="thumb-wrapper">
+      <img src="thumbnails/Benjamin 2.jpg"
+           class="thumb-img"
+           data-thumb="thumbnails/Benjamin 2.jpg"
+           onclick="openImageFromThumb(this)">
+    </div>
+  </td>
+
+  <td class="info-cell">
+    <a href="#"
+       class="play-link"
+       data-local="./Benjamin 2.mp4"
+       data-dropbox="https://dl.dropboxusercontent.com/s/f5si91vw2mekv6i3f5jq8/Benjamin-2.mp4?rlkey=bahfdyx8fysnb5ymw04tdvg9p"
+       onclick="openVideoFromLink(this); return false;">
+      <svg class="play-icon" viewBox="0 0 24 24">
+        <polygon points="5,3 19,12 5,21" />
+      </svg>
+      <span class="filename-text">Benjamin 2.mp4</span>
+    </a>
+
+    <div class="meta-line">
+      <span class="size-text">3,592.82 MB</span>
+      <span class="dot-sep">•</span>
+      <span class="duration-text">01:14:25</span>
+    </div>
+  </td>
+
+  <td class="share-cell">
+
+    <!-- Share button -->
+    <button class="icon-button"
+            data-dropbox="https://www.dropbox.com/s/f5si91vw2mekv6i3f5jq8/Benjamin-2.mp4?rlkey=bahfdyx8fysnb5ymw04tdvg9p&dl=0"
+            onclick="copyShareLinkFromButton(this)"
+            title="Copy Dropbox share link">
+      <svg class="share-icon" viewBox="0 0 24 24">
+        <path d="M14 3l7 4-7 4-7-4 7-4zm7 6v6l-7 4v-6l7-4zm-9 4v6l-7-4V9l7 4z"/>
+      </svg>
+    </button>
+
+    <!-- Download button -->
+    <a class="icon-button download-button"
+       data-dropbox-download="https://dl.dropboxusercontent.com/s/f5si91vw2mekv6i3f5jq8/Benjamin-2.mp4?rlkey=bahfdyx8fysnb5ymw04tdvg9p&dl=1"
+       onclick="downloadFromDropbox(this); return false;"
+       title="Download video">
+      <svg class="download-icon" viewBox="0 0 24 24">
+        <path d="M12 3v12l4-4h-3V3h-2v8H8l4 4zm-7 9v6h14v-6h2v8H3v-8h2z"/>
+      </svg>
+    </a>
+
+  </td>
+</tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="site-footer">
+        Video Digitisation Services | Ph: 0411 657 799
+      </footer>
+    </div>
+  </div>
+
+  <div class="overlay" id="videoOverlay" onclick="overlayBackgroundClick(event)">
+    <div class="overlay-inner" onclick="event.stopPropagation()"></div>
+  </div>
+
+  <div class="toast" id="toast">Link copied!</div>
+
+  <button id="backToTop" onclick="scrollToTop()">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 4l-7 8h4v8h6v-8h4z"/>
+    </svg>
+  </button>
+
+  <script>
+function isLocalContext() {
+  return window.location.protocol === 'file:';
+}
+
+function downloadFromDropbox(el) {
+  if (isLocalContext()) {
+    showToast("File already on USB");
+    return;
+  }
+
+  const url = el.getAttribute('data-dropbox-download');
+  window.open(url, '_blank');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (isLocalContext()) {
+    document.querySelectorAll('.download-button').forEach(btn => {
+      btn.style.display = 'none';
+    });
+  }
+});
+function openImageFromThumb(el) {
+  const src = el.getAttribute('data-thumb');
+  const overlay = document.getElementById('videoOverlay');
+  const inner = overlay.querySelector('.overlay-inner');
+
+  inner.innerHTML = `
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+    <img src="${src}" style="max-width:100%; max-height:100%; display:block;">
+  `;
+
+  overlay.classList.add('visible');
+}
+
+function openVideoFromLink(el) {
+  const overlay = document.getElementById('videoOverlay');
+  const inner = overlay.querySelector('.overlay-inner');
+
+  const localUrl = el.getAttribute('data-local');
+  const dropboxUrl = el.getAttribute('data-dropbox');
+
+  const src = isLocalContext() ? localUrl : dropboxUrl;
+
+  inner.innerHTML = `
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+    <video controls autoplay style="max-width:100%; max-height:100%; display:block;">
+      <source src="${src}" type="video/mp4">
+    </video>
+  `;
+
+  overlay.classList.add('visible');
+}
+
+function closeOverlay() {
+  const overlay = document.getElementById('videoOverlay');
+  const inner = overlay.querySelector('.overlay-inner');
+  inner.innerHTML = "";
+  overlay.classList.remove('visible');
+}
+
+function overlayBackgroundClick(event) {
+  if (event.target.id === 'videoOverlay') {
+    closeOverlay();
+  }
+}
+
+function copyShareLinkFromButton(el) {
+  const url = el.getAttribute('data-dropbox');
+  navigator.clipboard.writeText(url).then(() => {
+    showToast("Link copied!");
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 1800);
+}
+</script>
+
+</body>
+</html>
